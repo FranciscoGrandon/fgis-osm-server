@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  osm-tiles:
+    container_name: osm-tiles
+    image: overv/openstreetmap-tile-server:latest
+    restart: unless-stopped
+    ports:
+      - "8550:80"
+    volumes:
+      - osm-data:/data/database/
+      - ./chile-latest.osm.pbf:/data/region.osm.pbf:ro
+    environment:
+      - THREADS=4
+      - "OSM2PGSQL_EXTRA_ARGS=-C 2048"
+
+volumes:
+  osm-data:
+    name: osm-data

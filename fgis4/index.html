@@ -1,0 +1,1712 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>F-GIS 4.0 · Geoanalítica de Terreno · Servidor Local de Teselas</title>
+
+<!-- Fonts (Online CDN y sistema como fallback) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Librerías locales para uso Offline -->
+<link rel="stylesheet" href="lib/leaflet.css" />
+<link rel="stylesheet" href="lib/leaflet.draw.css" />
+
+<style>
+:root{
+  --navy:#0E2E63; --blue:#1652A8; --sky:#00AEEF; --orange:#F26522;
+  --bg-tint:#EAF3FB; --paper:#F5F9FD; --ink:#0E2E63;
+  --slate:#3E5375; --slate-soft:#7C8CA6; --line:#DCE7F5;
+  --amber:#F2A93B; --red:#E2453C; --green:#2FA36B; --radius:14px;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0;
+  font-family:'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background:var(--paper);
+  color:var(--slate);
+  font-size:14px;
+  line-height:1.5;
+}
+h1,h2,h3,h4{font-family:'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;margin:0;color:var(--navy);}
+.mono{font-family:'IBM Plex Mono',monospace;}
+
+/* ===== LAYOUT ===== */
+#app{display:flex;flex-direction:column;height:100vh;}
+.header{background:#fff;border-bottom:1px solid var(--line);padding:12px 26px;display:flex;justify-content:space-between;align-items:center;flex:0 0 auto;z-index:1100;}
+.brand{display:flex;align-items:center;gap:11px;}
+.brand-word{font-family:'Poppins',sans-serif;font-weight:800;font-size:22px;color:var(--navy);letter-spacing:.3px;}
+.brand-word span{color:var(--sky);}
+.brand-sub{font-size:10.5px;color:var(--slate-soft);text-transform:uppercase;letter-spacing:.5px;margin-top:1px;}
+.header-badges{display:flex;align-items:center;gap:10px;}
+
+#container{display:flex;flex:1 1 auto;min-height:0;}
+#sidebar{width:410px;flex:0 0 410px;background:#fff;padding:20px 20px 30px;overflow-y:auto;box-shadow:2px 0 15px rgba(14,46,99,0.06);z-index:1000;border-right:1px solid var(--line);}
+#map{flex:1;background:#e5e5e5;position:relative;}
+
+/* ===== BOTONES ===== */
+.btn{font-family:'Poppins',sans-serif;font-weight:600;font-size:12px;padding:10px 18px;border-radius:30px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;transition:filter .15s,transform .1s;text-transform:uppercase;letter-spacing:.3px;width:100%;}
+.btn:hover{filter:brightness(0.93);}
+.btn:active{transform:translateY(1px);}
+.btn.sm{padding:7px 12px;font-size:10.5px;}
+.btn-primary{background:var(--blue);color:#fff;}
+.btn-navy{background:var(--navy);color:#fff;}
+.btn-sky{background:var(--sky);color:#fff;}
+.btn-orange{background:var(--orange);color:#fff;}
+.btn-outline{background:#fff;color:var(--blue);border:1.5px solid var(--blue);}
+.btn-ghost{background:var(--bg-tint);color:var(--navy);}
+.btn-danger-ghost{background:#FCEAE8;color:var(--red);}
+.btn[disabled]{opacity:.4;cursor:not-allowed;filter:none;}
+.btn-row{display:flex;gap:8px;}
+.btn-row .btn{flex:1;}
+
+/* ===== SECCIONES ===== */
+.section{margin-bottom:20px;}
+.section-title{font-family:'Poppins',sans-serif;font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--slate-soft);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+
+.panel{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:14px 14px 12px;}
+
+/* ===== TARJETAS DE CAPA ===== */
+.layer-card{border:1.5px solid var(--line);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;background:#fff;}
+.layer-card.ready{border-color:var(--sky);}
+.layer-head{display:flex;align-items:center;gap:9px;padding:10px 12px;background:var(--bg-tint);}
+.layer-dot{width:12px;height:12px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 0 2px #fff;}
+.layer-title{flex:1;font-family:'Poppins',sans-serif;font-weight:600;font-size:12.5px;color:var(--navy);}
+.layer-name-input{flex:1;border:none;background:transparent;font-family:'Poppins',sans-serif;font-weight:600;font-size:12.5px;color:var(--navy);outline:none;padding:2px 4px;border-radius:6px;width: 90px;}
+.layer-name-input:focus{background:#fff;}
+.layer-count{font-size:10.5px;color:var(--slate-soft);white-space:nowrap;}
+.layer-reorder-btns {display:flex;flex-direction:column;gap:2px;margin-right:2px;}
+.reorder-btn {background:var(--bg-tint);border:none;color:var(--navy);font-size:8px;width:16px;height:13px;border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
+.reorder-btn:hover {background:var(--line);}
+.reorder-btn[disabled] {opacity:0.3;cursor:not-allowed;}
+.layer-remove{background:none;border:none;color:var(--slate-soft);cursor:pointer;font-size:14px;padding:2px 4px;line-height:1;}
+.layer-remove:hover{color:var(--red);}
+.layer-body{padding:12px;}
+
+.file-input-mini{border:2px dashed var(--sky);padding:16px 10px;text-align:center;border-radius:10px;cursor:pointer;background:var(--bg-tint);transition:all .2s;font-size:12px;}
+.file-input-mini:hover,.file-input-mini.dragover{background:#DDF0FC;border-color:var(--blue);}
+.file-input-mini strong{color:var(--navy);font-family:'Poppins',sans-serif;display:block;margin-bottom:2px;}
+.file-input-mini small{color:var(--slate-soft);font-size:10.5px;}
+
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:10px;}
+.field label{font-size:11px;font-weight:600;color:var(--navy);}
+select,input[type=text],input[type=search]{font-family:'Inter',sans-serif;font-size:12.5px;color:var(--slate);border:1.5px solid var(--line);border-radius:9px;padding:8px 10px;background:#fff;outline:none;width:100%;}
+select:focus,input:focus{border-color:var(--sky);}
+.checkline{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--slate);margin-top:4px;}
+
+/* ===== INTERRUPTOR (toggle switch) ===== */
+.switch{position:relative;display:inline-block;width:34px;height:19px;flex:0 0 auto;}
+.switch input{opacity:0;width:0;height:0;position:absolute;}
+.slider-toggle{position:absolute;inset:0;background:#C7D6EA;transition:.2s;border-radius:34px;cursor:pointer;}
+.slider-toggle:before{position:absolute;content:"";height:13px;width:13px;left:3px;top:3px;background:#fff;transition:.2s;border-radius:50%;box-shadow:0 1px 2px rgba(0,0,0,.2);}
+.switch input:checked + .slider-toggle{background:var(--sky);}
+.switch input:checked + .slider-toggle:before{transform:translateX(15px);}
+.layer-card.off .layer-body{opacity:.45;}
+.layer-card.off .layer-name-input{color:var(--slate-soft);}
+
+.style-row{display:flex;align-items:center;gap:10px;margin-top:4px;}
+
+/* ===== LEYENDA DE ETIQUETAS ===== */
+.layer-legend {
+  background: #FAFBFD;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  margin-top: 10px;
+}
+
+/* ===== KPI ===== */
+.kpi-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.kpi-card{background:var(--blue);border-radius:12px;padding:12px 10px;color:#fff;text-align:center;}
+.kpi-card.alt1{background:var(--navy);}
+.kpi-card.alt2{background:linear-gradient(135deg,var(--sky),var(--blue));}
+.kpi-label{font-size:9.5px;font-weight:500;opacity:.9;text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px;}
+.kpi-value{font-family:'Poppins',sans-serif;font-size:19px;font-weight:700;}
+
+/* ===== BADGES / ALERTAS ===== */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;font-size:11px;font-weight:600;transition:all .15s;}
+.badge.ok{background:#E1F5EA;color:var(--green);border:1px solid #B8E8CE;}
+.badge.warn{background:#FDF0DC;color:#AD7317;border:1px solid #F5D7A1;}
+.badge.risk{background:#FBE3E1;color:var(--red);border:1px solid #F4BCB8;}
+.badge.info{background:var(--bg-tint);color:var(--blue);border:1px solid #C9DFFA;}
+.badge .dot{width:7px;height:7px;border-radius:50%;background:currentColor;}
+.badge.clickable{cursor:pointer;}
+.badge.clickable:hover{filter:brightness(0.95);transform:translateY(-1px);}
+
+.alert{display:flex;gap:9px;padding:10px 12px;border-radius:10px;font-size:11.5px;border-left:4px solid;margin-top:8px;}
+.alert.warn{background:#FEF6E9;border-color:var(--amber);color:#8A5D0F;}
+.alert.info{background:var(--bg-tint);border-color:var(--sky);color:var(--navy);}
+
+/* ===== LISTA ===== */
+.results-preview{font-size:12px;background:var(--bg-tint);border-radius:10px;padding:6px 10px;max-height:170px;overflow-y:auto;}
+.results-preview .row{padding:5px 2px;border-bottom:1px solid #DCEAF8;display:flex;align-items:center;gap:6px;}
+.results-preview .row:last-child{border-bottom:none;}
+.results-preview .row .rdot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;}
+.results-preview .row .rid{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.results-preview .row .coord{color:var(--slate-soft);font-family:'IBM Plex Mono',monospace;font-size:10px;white-space:nowrap;}
+.empty-hint{color:var(--slate-soft);font-size:12px;text-align:center;padding:14px 4px;}
+
+/* ===== LOADING / TOAST ===== */
+.loading-overlay{position:fixed;inset:0;background:rgba(245,249,253,0.92);display:none;flex-direction:column;justify-content:center;align-items:center;z-index:3000;gap:14px;}
+.spinner{width:40px;height:40px;border:4px solid var(--bg-tint);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-overlay .msg{font-family:'Poppins',sans-serif;font-weight:600;color:var(--navy);font-size:13px;}
+.progress-track{width:240px;height:8px;background:var(--bg-tint);border-radius:10px;overflow:hidden;}
+.progress-fill{height:100%;width:0%;background:var(--sky);transition:width .15s;}
+
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 20px;border-radius:30px;font-size:12.5px;font-weight:600;z-index:4000;box-shadow:0 8px 22px rgba(14,46,99,.25);display:none;}
+
+/* ===== LEAFLET OVERRIDES ===== */
+.leaflet-popup-content-wrapper{border-radius:10px;}
+.leaflet-popup-content{font-family:'Inter',sans-serif;font-size:12.5px;color:var(--slate);}
+.leaflet-popup-content b{color:var(--navy);font-family:'Poppins',sans-serif;}
+.fgis-div-icon{background:none;border:none;}
+
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:#C7DAEF;border-radius:10px;}
+
+/* ===== MODALES ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 46, 99, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5000;
+}
+.modal-card {
+  background: #fff;
+  width: 90%;
+  max-width: 800px;
+  border-radius: var(--radius);
+  box-shadow: 0 15px 40px rgba(14, 46, 99, 0.2);
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+  border: 1px solid var(--line);
+}
+.modal-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--slate-soft);
+  cursor: pointer;
+}
+.modal-close:hover {
+  color: var(--red);
+}
+.modal-body {
+  padding: 20px 24px 30px;
+  overflow-y: auto;
+  flex: 1;
+}
+.outliers-table-container {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 12px;
+}
+.outliers-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.outliers-table th, .outliers-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+.outliers-table th {
+  background: var(--bg-tint);
+  color: var(--navy);
+  font-weight: 600;
+}
+.outliers-table tr:last-child td {
+  border-bottom: none;
+}
+.outliers-table input[type=number] {
+  width: 120px;
+  padding: 5px 8px;
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11.5px;
+}
+.outliers-table input[type=number]:focus {
+  border-color: var(--sky);
+  outline: none;
+}
+.outliers-action-btns {
+  display: flex;
+  gap: 6px;
+}
+.outliers-action-btns .btn {
+  padding: 5px 10px;
+  font-size: 10px;
+  text-transform: none;
+  width: auto;
+  border-radius: 6px;
+}
+
+/* ===== MODAL SERVIDOR ===== */
+.server-status-box {
+  background: var(--bg-tint);
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.code-box {
+  background: #0E2E63;
+  color: #8EF0C7;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  margin: 10px 0;
+  position: relative;
+  word-break: break-all;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.btn-copy {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: background .2s;
+}
+.btn-copy:hover {
+  background: rgba(255,255,255,0.3);
+}
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+.metric-item {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+}
+.metric-item .val {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--navy);
+}
+.metric-item .lbl {
+  font-size: 10px;
+  color: var(--slate-soft);
+  text-transform: uppercase;
+}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <div class="msg" id="loadingMsg">Procesando…</div>
+  <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<div id="app">
+  <div class="header">
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 40 40" fill="none">
+        <path d="M20 2 L23 13 L34 10 L26 18 L34 26 L23 23 L20 34 L17 23 L6 26 L14 18 L6 10 L17 13 Z" fill="#1652A8"/>
+        <circle cx="20" cy="18" r="5" fill="#00AEEF"/>
+      </svg>
+      <div>
+        <div class="brand-word">F-GIS <span>4.0</span></div>
+        <div class="brand-sub">Geoanalítica de Terreno · Servidor Local de Teselas (8550)</div>
+      </div>
+    </div>
+    <div class="header-badges">
+      <span class="badge info clickable" id="serverStatusBadge" onclick="openServerModal()" title="Ver diagnóstico y comandos del Servidor Local (8550)">
+        <span class="dot"></span>Verificando Servidor 8550…
+      </span>
+      <span class="badge info" id="datasetBadge"><span class="dot"></span>Sin capas cargadas</span>
+    </div>
+  </div>
+
+  <div id="container">
+    <div id="sidebar">
+
+      <!-- CAPAS -->
+      <div class="section">
+        <div class="section-title">① Capas de datos (máx. 6)</div>
+        <div id="layersContainer"></div>
+      </div>
+
+      <!-- RESUMEN GLOBAL -->
+      <div class="section" id="statsSection" style="display:none;">
+        <div class="section-title">② Resumen</div>
+        <div class="kpi-row">
+          <div class="kpi-card alt1"><div class="kpi-label">Puntos totales</div><div class="kpi-value" id="kpiTotal">0</div></div>
+          <div class="kpi-card"><div class="kpi-label">Capas activas</div><div class="kpi-value" id="kpiLayers">0</div></div>
+          <div class="kpi-card alt2"><div class="kpi-label">Seleccionados</div><div class="kpi-value" id="kpiSelected">0</div></div>
+        </div>
+      </div>
+
+      <!-- HERRAMIENTAS -->
+      <div class="section" id="toolsSection" style="display:none;">
+        <div class="section-title">③ Herramientas de selección</div>
+        <div class="btn-row" style="margin-bottom:8px;">
+          <button class="btn btn-sky" onclick="startDrawing('polygon')">✏️ Polígono</button>
+          <button class="btn btn-sky" onclick="startDrawing('rectangle')">▭ Rectángulo</button>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="clearSelection()">Limpiar selección</button>
+          <button class="btn btn-ghost" onclick="clearAllLayers()">Reiniciar todo</button>
+        </div>
+        <div class="field" style="margin-top:12px; margin-bottom: 4px;">
+          <label>Capa base del mapa</label>
+          <select id="baseLayerSelect" onchange="switchBaseLayer()">
+            <option value="localOsm" selected>OSM Local (Caché Puerto 8550) [Predeterminado]</option>
+            <option value="remoteOsm">OSM Remoto (Oficial Online)</option>
+            <option value="sat">Satélite (Esri)</option>
+          </select>
+        </div>
+        <div class="checkline">
+          <input type="checkbox" id="showRegionsChk" checked onchange="toggleRegionsVisibility()">
+          <label for="showRegionsChk" style="font-size:11.5px; cursor:pointer; user-select:none;">Mostrar límites de las 4 regiones (O'Higgins a Biobío)</label>
+        </div>
+      </div>
+
+      <!-- BÚSQUEDA + PREVIEW -->
+      <div class="section" id="previewSection" style="display:none;">
+        <div class="section-title">④ Puntos seleccionados</div>
+        <div class="field" style="margin-bottom:8px;">
+          <input type="search" id="searchInput" placeholder="Buscar por identificador…" oninput="renderPreview()">
+        </div>
+        <div id="previewList" class="results-preview"><div class="empty-hint">Dibuja un polígono o rectángulo sobre el mapa para seleccionar puntos.</div></div>
+      </div>
+
+      <!-- EXPORTAR -->
+      <div class="section" id="exportSection" style="display:none;">
+        <div class="section-title">⑤ Exportar</div>
+        <div class="btn-row" style="margin-bottom:8px;">
+          <button class="btn btn-orange" id="btnExportCsv" onclick="exportSelection('csv')" disabled>CSV seleccionados</button>
+          <button class="btn btn-outline" id="btnExportGeo" onclick="exportSelection('geojson')" disabled>GeoJSON seleccionados</button>
+        </div>
+        <button class="btn btn-ghost sm" style="width:100%" onclick="exportAllLayers()">Exportar todos los puntos válidos (todas las capas)</button>
+      </div>
+
+    </div>
+    <div id="map"></div>
+  </div>
+</div>
+
+<!-- MODAL DE DIAGNÓSTICO DEL SERVIDOR LOCAL -->
+<div id="serverModal" class="modal-overlay" style="display:none;">
+  <div class="modal-card" style="max-width:620px;">
+    <div class="modal-header">
+      <h3 style="font-size: 15px; font-weight: 700;">Diagnóstico · Servidor Local de Teselas (Puerto 8550)</h3>
+      <button class="modal-close" onclick="closeServerModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="server-status-box" id="serverStatusBox">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-weight:700; color:var(--navy); font-size:13px;">Estado del Endpoint:</span>
+          <span class="badge info" id="serverModalBadge"><span class="dot"></span>Verificando…</span>
+        </div>
+        <div style="font-size:12px; color:var(--slate); margin-bottom:4px;">
+          <b>URL de Teselas:</b> <code class="mono" style="background:#fff; padding:2px 6px; border-radius:4px; border:1px solid var(--line);">http://localhost:8550/tile/{z}/{x}/{y}.png</code>
+        </div>
+        <div style="font-size:12px; color:var(--slate);">
+          <b>Almacenamiento:</b> SQLite con caché WAL de alta concurrencia y peticiones bajo demanda (On-Demand).
+        </div>
+
+        <div class="metrics-grid" id="serverMetricsGrid" style="display:none;">
+          <div class="metric-item">
+            <div class="val" id="metricCachedTiles">0</div>
+            <div class="lbl">Teselas en Caché</div>
+          </div>
+          <div class="metric-item">
+            <div class="val" id="metricDbSize">0 MB</div>
+            <div class="lbl">Tamaño BD</div>
+          </div>
+          <div class="metric-item">
+            <div class="val" id="metricUptime">0s</div>
+            <div class="lbl">Tiempo Activo</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="serverOfflineInstructions" style="display:none;">
+        <h4 style="font-size:12.5px; color:var(--orange); margin-bottom:6px;">⚠️ Servidor Local No Detectado (Modo Fallback Activo)</h4>
+        <p style="font-size:12px; color:var(--slate); margin-top:0; line-height:1.4;">
+          El mapa ha activado automáticamente el <b>fallback a OpenStreetMap Oficial</b> para garantizar continuidad operativa. Para iniciar o reiniciar el servidor de teselas local de alto rendimiento en tu máquina, ejecuta en una terminal PowerShell:
+        </p>
+        <div class="code-box">
+          <span id="cmdText">python "D:\OSM_LOCAL\osm-server\server.py"</span>
+          <button class="btn-copy" onclick="copyStartCommand()">Copiar</button>
+        </div>
+        <small style="color:var(--slate-soft); font-size:11px;">Una vez iniciado el servidor, las teselas solicitadas se almacenarán en la base de datos local SQLite para acceso ultra-rápido y offline.</small>
+      </div>
+
+      <div style="margin-top:20px; display:flex; gap:10px;">
+        <button class="btn btn-primary" onclick="checkLocalServerStatus(true)">🔄 Reintentar Conexión</button>
+        <button class="btn btn-ghost" onclick="closeServerModal()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DE GESTIÓN DE OUTLIERS (PUNTOS LEJANOS) -->
+<div id="outliersModal" class="modal-overlay" style="display:none;">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 id="modalTitle" style="font-size: 15px; font-weight: 700;">Corregir Puntos Lejanos</h3>
+      <button class="modal-close" onclick="closeOutliersModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-top:0; font-size:12px; color:var(--slate-soft); line-height: 1.4;">
+        Estos puntos están a más de <b>200 km</b> del centro robusto de su capa o fuera de las fronteras nacionales. 
+        Corrija sus coordenadas (Latitud / Longitud) en los campos de edición y pulse <b>Guardar</b>, 
+        ubíquelos visualmente con <b>Ver</b>, o descártelos con <b>Excluir</b>.
+      </p>
+      <div class="outliers-table-container">
+        <table class="outliers-table">
+          <thead>
+            <tr>
+              <th>ID Punto</th>
+              <th>Alerta / Distancia</th>
+              <th>Latitud</th>
+              <th>Longitud</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="outliersTableBody">
+            <!-- Cargado por JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Librerías locales para funcionamiento Offline -->
+<script src="lib/leaflet.js"></script>
+<script src="lib/leaflet.draw.js"></script>
+<script src="lib/xlsx.full.min.js"></script>
+<script src="lib/regiones.js"></script>
+
+<script>
+'use strict';
+
+// ===================== CONFIGURACIÓN F-GIS 4.0 =====================
+const MAX_LAYERS = 6;
+const CHUNK_SIZE = 1200;
+const LOCAL_TILE_ENDPOINT = 'http://localhost:8550/tile/{z}/{x}/{y}.png';
+const LOCAL_HEALTH_ENDPOINT = 'http://localhost:8550/api/health';
+const LOCAL_STATUS_ENDPOINT = 'http://localhost:8550/api/status';
+const REMOTE_TILE_ENDPOINT = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+const COLOR_OPTIONS = [
+  { value:'#1652A8', label:'🔵 Azul' },
+  { value:'#F26522', label:'🟠 Naranja' },
+  { value:'#00AEEF', label:'🔷 Celeste' },
+  { value:'#2FA36B', label:'🟢 Verde' },
+  { value:'#E2453C', label:'🔴 Rojo' },
+  { value:'#8E44AD', label:'🟣 Púrpura' },
+  { value:'#F2A93B', label:'🟡 Ámbar' },
+  { value:'#0E2E63', label:'🔹 Navy' },
+  { value:'#7C8CA6', label:'⚪ Gris' }
+];
+const DEFAULT_COLORS = ['#1652A8', '#F26522', '#00AEEF', '#2FA36B', '#8E44AD', '#E2453C'];
+
+const ICON_OPTIONS = [
+  { value:'circle', label:'● Círculo' },
+  { value:'square', label:'■ Cuadrado' },
+  { value:'triangle', label:'▲ Triángulo' },
+  { value:'diamond', label:'◆ Rombo' },
+  { value:'star', label:'★ Estrella' }
+];
+
+const CANDIDATES = {
+  lat: ['lat', 'latitud', 'latitude', 'y', 'coordy', 'coord_y'],
+  lng: ['lng', 'lon', 'long', 'longitud', 'longitude', 'x', 'coordx', 'coord_x'],
+  id: ['id', 'instalacion', 'instalación', 'codigo', 'código', 'folio', 'nombre', 'name', 'cliente'],
+  label: ['etiqueta', 'etiquetas', 'label', 'labels', 'categoria', 'categoría', 'tipo', 'type', 'estado', 'status']
+};
+
+const LABEL_COLORS = ['#E2453C', '#2FA36B', '#8E44AD', '#F2A93B', '#00AEEF', '#F26522'];
+const LABEL_FALLBACK_COLOR = '#7C8CA6';
+
+// ===================== ESTADO GLOBAL =====================
+let map, drawnItems, drawControl;
+let baseLayers = {};
+let regionalLayer = null;
+let isLocalServerOnline = false;
+let activeBaseLayerKey = 'localOsm';
+
+// layers[slot] = null | { state:'pending'|'ready', name, color, icon, fileName,
+//                         rawRows, headers, mapping, points, invalidRows, outliers,
+//                         leafletGroup, visible, renderGen, medianCenter, labelMap, uniqueLabels }
+let layers = new Array(MAX_LAYERS).fill(null);
+let selectedPoints = []; // {id,lat,lng,label,extra,layerSlot,layerName,color}
+
+// Control del orden de dibujo de las capas (Index 0 es el superior, se dibuja al final)
+let drawOrder = Array.from({length: MAX_LAYERS}, (_, i) => i);
+let renderers = new Array(MAX_LAYERS).fill(null);
+let activeOutlierSlot = null;
+
+// ===================== EXTENSIÓN CANVAS LEAFLET (SHAPEMARKER) =====================
+L.ShapeMarker = L.CircleMarker.extend({
+  options: {
+    shape: 'circle'
+  },
+  _updatePath: function () {
+    var r = this._renderer;
+    if (!r || !r._ctx) { return; }
+    var ctx = r._ctx;
+    var p = this._point;
+    var rad = this._radius;
+    var shape = this.options.shape;
+
+    ctx.beginPath();
+
+    if (shape === 'square') {
+      var size = rad * 2;
+      ctx.rect(p.x - rad, p.y - rad, size, size);
+    } else if (shape === 'triangle') {
+      ctx.moveTo(p.x, p.y - rad);
+      ctx.lineTo(p.x + rad * 1.15, p.y + rad * 0.65);
+      ctx.lineTo(p.x - rad * 1.15, p.y + rad * 0.65);
+      ctx.closePath();
+    } else if (shape === 'diamond') {
+      ctx.moveTo(p.x, p.y - rad * 1.3);
+      ctx.lineTo(p.x + rad * 1.3, p.y);
+      ctx.lineTo(p.x, p.y + rad * 1.3);
+      ctx.lineTo(p.x - rad * 1.3, p.y);
+      ctx.closePath();
+    } else if (shape === 'star') {
+      var spikes = 5;
+      var rOuter = rad * 1.3;
+      var rInner = rad * 0.6;
+      var rot = -Math.PI / 2;
+      var step = Math.PI / spikes;
+      ctx.moveTo(p.x, p.y - rOuter);
+      for (var i = 0; i < spikes; i++) {
+        ctx.lineTo(p.x + Math.cos(rot) * rOuter, p.y + Math.sin(rot) * rOuter);
+        rot += step;
+        ctx.lineTo(p.x + Math.cos(rot) * rInner, p.y + Math.sin(rot) * rInner);
+        rot += step;
+      }
+      ctx.closePath();
+    } else {
+      ctx.arc(p.x, p.y, rad, 0, Math.PI * 2, false);
+    }
+
+    r._fillStroke(ctx, this);
+  }
+});
+
+L.shapeMarker = function (latlng, options) {
+  return new L.ShapeMarker(latlng, options);
+};
+
+// Capa adaptada para OpenStreetMap Remoto con cabeceras requeridas por la Tile Usage Policy
+const OsmRemoteTileLayer = L.TileLayer.extend({
+  createTile: function (coords, done) {
+    const tile = document.createElement('img');
+    tile.setAttribute('role', 'presentation');
+    const url = this.getTileUrl(coords);
+
+    fetch(url, {
+      headers: {
+        'X-Requested-With': 'FGIS-App'
+      }
+    })
+    .then(res => {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.blob();
+    })
+    .then(blob => {
+      tile.src = URL.createObjectURL(blob);
+      tile.onload = () => {
+        URL.revokeObjectURL(tile.src);
+        done(null, tile);
+      };
+      tile.onerror = (e) => {
+        URL.revokeObjectURL(tile.src);
+        done(e, tile);
+      };
+    })
+    .catch(err => {
+      tile.src = url;
+      tile.onload = () => done(null, tile);
+      tile.onerror = () => done(err, tile);
+    });
+
+    return tile;
+  }
+});
+
+// Capa Local Resiliente con Fallback de Tesela Individual a OSM Oficial
+const OsmLocalResilientLayer = L.TileLayer.extend({
+  createTile: function (coords, done) {
+    const tile = document.createElement('img');
+    tile.setAttribute('role', 'presentation');
+    const localUrl = this.getTileUrl(coords);
+
+    tile.onload = () => done(null, tile);
+    tile.onerror = () => {
+      // Fallback a nivel de tesela individual a OSM oficial
+      const fallbackUrl = REMOTE_TILE_ENDPOINT
+        .replace('{z}', coords.z)
+        .replace('{x}', coords.x)
+        .replace('{y}', coords.y);
+      tile.onerror = (err) => done(err, tile);
+      tile.src = fallbackUrl;
+    };
+    tile.src = localUrl;
+    return tile;
+  }
+});
+
+// ===================== INICIALIZACIÓN =====================
+function initMap() {
+  // Delimitación geográfica Zona Centro-Sur de Chile (Regiones 6, 7, 8 y 16)
+  const centralChileBounds = L.latLngBounds([-39.0, -74.5], [-33.0, -69.5]);
+
+  map = L.map('map', {
+    preferCanvas: true,
+    center: [-36.5, -72.6],
+    zoom: 8,
+    maxBounds: centralChileBounds,
+    maxBoundsViscosity: 1.0,
+    minZoom: 1,
+    maxZoom: 22
+  });
+
+  // 1. Capa OSM Local (Servidor Puerto 8550) - Predeterminada
+  baseLayers.localOsm = new OsmLocalResilientLayer(LOCAL_TILE_ENDPOINT, {
+    attribution: '© <a href="http://localhost:8550" target="_blank">OSM Local (8550)</a> · <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+    maxZoom: 22
+  });
+
+  // 2. Capa OSM Remota Oficial
+  baseLayers.remoteOsm = new OsmRemoteTileLayer(REMOTE_TILE_ENDPOINT, {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+    maxZoom: 22
+  });
+
+  // 3. Capa Satelital Esri
+  baseLayers.sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles © Esri',
+    maxZoom: 22
+  });
+
+  // Agregar capa local predeterminada
+  baseLayers.localOsm.addTo(map);
+  activeBaseLayerKey = 'localOsm';
+
+  loadRegionalBaseMap();
+
+  drawnItems = new L.FeatureGroup().addTo(map);
+
+  drawControl = new L.Control.Draw({
+    draw: {
+      polygon: { allowIntersection: false, shapeOptions: { color: '#1652A8', fillOpacity: 0.12 } },
+      rectangle: { shapeOptions: { color: '#F26522', fillOpacity: 0.08 } },
+      circle: false, polyline: false, marker: false, circlemarker: false
+    },
+    edit: { featureGroup: drawnItems },
+    position: 'topright'
+  });
+  map.addControl(drawControl);
+
+  map.on(L.Draw.Event.CREATED, (e) => { drawnItems.addLayer(e.layer); recomputeSelection(); });
+  map.on(L.Draw.Event.EDITED, recomputeSelection);
+  map.on(L.Draw.Event.DELETED, recomputeSelection);
+
+  initPanesAndRenderers();
+  renderAllLayerCards();
+
+  // Verificación reactiva inicial del servidor de teselas local
+  checkLocalServerStatus(false);
+}
+
+function initPanesAndRenderers() {
+  for (let slot = 0; slot < MAX_LAYERS; slot++) {
+    const paneName = 'pane_slot_' + slot;
+    map.createPane(paneName);
+    renderers[slot] = L.canvas({ pane: paneName, padding: 0.5 });
+  }
+  updateLayerZIndices();
+}
+
+function updateLayerZIndices() {
+  drawOrder.forEach((slot, index) => {
+    const pane = map.getPane('pane_slot_' + slot);
+    if (pane) {
+      pane.style.zIndex = 450 - index * 10;
+    }
+  });
+}
+
+function loadRegionalBaseMap() {
+  if (typeof CHILE_REGIONES_GEOJSON !== 'undefined') {
+    const targetCodes = [6, 7, 8, 16];
+    const filteredFeatures = CHILE_REGIONES_GEOJSON.features.filter(f => {
+      const code = Number(f.properties.codregion);
+      return targetCodes.includes(code);
+    });
+
+    const geojsonData = {
+      type: 'FeatureCollection',
+      features: filteredFeatures
+    };
+
+    regionalLayer = L.geoJSON(geojsonData, {
+      style: function () {
+        return {
+          color: '#3E5375',
+          weight: 1.5,
+          fillColor: '#EAF3FB',
+          fillOpacity: 0.3,
+          dashArray: '4'
+        };
+      },
+      interactive: false
+    }).addTo(map);
+  } else {
+    showToast('Aviso: Archivo de límites regionales offline no cargado.');
+  }
+}
+
+function toggleRegionsVisibility() {
+  const show = document.getElementById('showRegionsChk').checked;
+  if (regionalLayer) {
+    if (show) regionalLayer.addTo(map);
+    else map.removeLayer(regionalLayer);
+  }
+}
+
+// ===================== GESTIÓN DE SERVIDOR LOCAL Y CAPA BASE =====================
+function checkLocalServerStatus(userInitiated = false) {
+  const badge = document.getElementById('serverStatusBadge');
+  const modalBadge = document.getElementById('serverModalBadge');
+  badge.className = 'badge info clickable';
+  badge.innerHTML = '<span class="dot"></span>Verificando Servidor 8550…';
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+  fetch(LOCAL_HEALTH_ENDPOINT, { signal: controller.signal })
+    .then(res => {
+      clearTimeout(timeoutId);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    })
+    .then(data => {
+      isLocalServerOnline = true;
+      badge.className = 'badge ok clickable';
+      badge.innerHTML = '<span class="dot"></span>OSM Local (8550) Activo';
+      modalBadge.className = 'badge ok';
+      modalBadge.innerHTML = '<span class="dot"></span>En Línea (Online)';
+
+      document.getElementById('serverOfflineInstructions').style.display = 'none';
+      loadServerMetrics();
+
+      if (userInitiated) {
+        showToast('Servidor local en puerto 8550 conectado con éxito.');
+        // Si el usuario reintentó, restaurar capa local si estaba en fallback
+        if (document.getElementById('baseLayerSelect').value === 'localOsm') {
+          switchBaseLayer('localOsm');
+        }
+      }
+    })
+    .catch(err => {
+      clearTimeout(timeoutId);
+      isLocalServerOnline = false;
+      badge.className = 'badge warn clickable';
+      badge.innerHTML = '<span class="dot"></span>OSM Local Offline · Fallback Activo';
+      modalBadge.className = 'badge warn';
+      modalBadge.innerHTML = '<span class="dot"></span>Desconectado (Fallback)';
+
+      document.getElementById('serverOfflineInstructions').style.display = 'block';
+      document.getElementById('serverMetricsGrid').style.display = 'none';
+
+      // Fallback automático si la capa activa era OSM Local
+      const select = document.getElementById('baseLayerSelect');
+      if (select.value === 'localOsm') {
+        showToast('Servidor local offline: Se activó fallback a OSM Remoto Oficial.');
+      }
+    });
+}
+
+function loadServerMetrics() {
+  fetch(LOCAL_STATUS_ENDPOINT)
+    .then(res => res.json())
+    .then(data => {
+      if (data && data.cached_tiles !== undefined) {
+        document.getElementById('metricCachedTiles').textContent = Number(data.cached_tiles).toLocaleString('es-CL');
+        document.getElementById('metricDbSize').textContent = (data.database_size_mb || 0) + ' MB';
+        document.getElementById('metricUptime').textContent = Math.round((data.uptime_seconds || 0) / 60) + ' min';
+        document.getElementById('serverMetricsGrid').style.display = 'grid';
+      }
+    })
+    .catch(() => {});
+}
+
+function switchBaseLayer(forcedChoice) {
+  const choice = forcedChoice || document.getElementById('baseLayerSelect').value;
+  Object.keys(baseLayers).forEach(k => {
+    if (map.hasLayer(baseLayers[k])) map.removeLayer(baseLayers[k]);
+  });
+
+  if (choice === 'localOsm' && !isLocalServerOnline) {
+    // Si se selecciona local pero está offline, usar fallback a remoteOsm
+    baseLayers.remoteOsm.addTo(map);
+    showToast('Aviso: Servidor local no detectado. Visualizando vía OSM Remoto.');
+  } else if (baseLayers[choice]) {
+    baseLayers[choice].addTo(map);
+  }
+
+  activeBaseLayerKey = choice;
+}
+
+function openServerModal() {
+  document.getElementById('serverModal').style.display = 'flex';
+  checkLocalServerStatus(false);
+}
+
+function closeServerModal() {
+  document.getElementById('serverModal').style.display = 'none';
+}
+
+function copyStartCommand() {
+  const cmd = document.getElementById('cmdText').innerText;
+  navigator.clipboard.writeText(cmd).then(() => {
+    showToast('Comando copiado al portapapeles.');
+  }).catch(() => {
+    showToast('No se pudo copiar automáticamente.');
+  });
+}
+
+function startDrawing(type) {
+  const anyPoints = layers.some(l => l && l.points && l.points.length);
+  if (!anyPoints) { showToast('Carga al menos una capa con puntos válidos.'); return; }
+  if (type === 'polygon') new L.Draw.Polygon(map, drawControl.options.draw.polygon).enable();
+  if (type === 'rectangle') new L.Draw.Rectangle(map, drawControl.options.draw.rectangle).enable();
+}
+
+// ===================== UI DE CAPAS =====================
+function renderAllLayerCards() {
+  const container = document.getElementById('layersContainer');
+  container.innerHTML = '';
+  drawOrder.forEach(slot => {
+    container.appendChild(buildLayerCardEl(slot));
+  });
+}
+
+function buildLayerCardEl(slot) {
+  const wrap = document.createElement('div');
+  const layer = layers[slot];
+  wrap.className = 'layer-card' + (layer && layer.state === 'ready' ? ' ready' : '') + (layer && layer.state === 'ready' && !layer.visible ? ' off' : '');
+  wrap.id = `layerCard${slot}`;
+
+  if (!layer) {
+    wrap.innerHTML = `
+      <div class="layer-head">
+        <span class="layer-dot" style="background:${DEFAULT_COLORS[slot]}"></span>
+        <span class="layer-title">Capa ${slot + 1}</span>
+      </div>
+      <div class="layer-body">
+        <div class="file-input-mini" id="dz${slot}" onclick="document.getElementById('fileInput${slot}').click()">
+          <strong>+ Cargar Excel / CSV</strong>
+          <small>Clic o arrastra el archivo aquí</small>
+          <input type="file" id="fileInput${slot}" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleLayerFileInput(${slot}, event)">
+        </div>
+      </div>`;
+    setTimeout(() => attachDropZone(slot), 0);
+    return wrap;
+  }
+
+  if (layer.state === 'pending') {
+    const opts = (sel) => layer.headers.map(h => `<option value="${escapeAttr(h)}" ${h===sel?'selected':''}>${escapeHtml(h)}</option>`).join('');
+    wrap.innerHTML = `
+      <div class="layer-head">
+        <span class="layer-dot" style="background:${layer.color}"></span>
+        <span class="layer-title">${escapeHtml(layer.fileName)}</span>
+        <button class="layer-remove" onclick="removeLayer(${slot})" title="Quitar">✕</button>
+      </div>
+      <div class="layer-body">
+        <div class="field"><label>Columna de Latitud *</label>
+          <select id="mapLat${slot}" onchange="validateMappingBtn(${slot})"><option value="">— Selecciona —</option>${opts(layer._guessLat)}</select></div>
+        <div class="field"><label>Columna de Longitud *</label>
+          <select id="mapLng${slot}" onchange="validateMappingBtn(${slot})"><option value="">— Selecciona —</option>${opts(layer._guessLng)}</select></div>
+        <div class="field"><label>Identificador</label>
+          <select id="mapId${slot}"><option value="">— Ninguno —</option>${opts(layer._guessId)}</select></div>
+        <div class="field"><label>Columna de Etiquetas (opcional)</label>
+          <select id="mapLabel${slot}"><option value="">— Ninguno —</option>${opts(layer._guessLabel)}</select></div>
+        <div class="field"><label>Campo adicional (opcional)</label>
+          <select id="mapExtra${slot}"><option value="">— Ninguno —</option>${opts(null)}</select></div>
+        <button class="btn btn-primary" id="btnMap${slot}" onclick="confirmLayerMapping(${slot})" disabled>Confirmar y cargar puntos</button>
+      </div>`;
+    setTimeout(() => {
+      document.getElementById(`mapLat${slot}`).value = layer._guessLat || '';
+      document.getElementById(`mapLng${slot}`).value = layer._guessLng || '';
+      document.getElementById(`mapId${slot}`).value = layer._guessId || '';
+      document.getElementById(`mapLabel${slot}`).value = layer._guessLabel || '';
+      validateMappingBtn(slot);
+    }, 0);
+    return wrap;
+  }
+
+  // state === 'ready'
+  const invalidBadge = layer.invalidRows.length
+    ? `<span class="badge warn" style="font-size:9.5px;"><span class="dot"></span>${layer.invalidRows.length} inválidas</span>` : '';
+  
+  const outlierBadge = layer.outliers && layer.outliers.length
+    ? `<span class="badge risk" style="cursor:pointer; font-size:9.5px;" onclick="openOutliersModal(${slot})" title="Haga clic para corregir"><span class="dot"></span>${layer.outliers.length} lejanos</span>` : '';
+
+  const orderIdx = drawOrder.indexOf(slot);
+  const upDisabled = orderIdx === 0 ? 'disabled' : '';
+  const downDisabled = orderIdx === MAX_LAYERS - 1 ? 'disabled' : '';
+  
+  const reorderButtons = `
+    <div class="layer-reorder-btns">
+      <button class="reorder-btn" onclick="moveLayerInOrder(${slot}, -1)" ${upDisabled} title="Mover arriba (Priorizar dibujo)">▲</button>
+      <button class="reorder-btn" onclick="moveLayerInOrder(${slot}, 1)" ${downDisabled} title="Mover abajo">▼</button>
+    </div>
+  `;
+
+  // Construcción de la leyenda visual de las etiquetas
+  let legendHtml = '';
+  if (layer.mapping.label && Object.keys(layer.labelMap).length > 0) {
+    legendHtml += `
+      <div class="layer-legend">
+        <div style="font-size: 10px; font-weight: 700; color: var(--navy); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.2px;">Etiquetas:</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 10.5px;">
+      `;
+    Object.keys(layer.labelMap).forEach(lbl => {
+      const color = layer.labelMap[lbl];
+      legendHtml += `
+        <div style="display: flex; align-items: center; gap: 5px; overflow: hidden;" title="${escapeAttr(lbl)}">
+          <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${color}; flex-shrink: 0;"></span>
+          <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(lbl)}</span>
+        </div>
+      `;
+    });
+    if (layer.uniqueLabels && layer.uniqueLabels.length > 6) {
+      legendHtml += `
+        <div style="display: flex; align-items: center; gap: 5px; color: var(--slate-soft);" title="Otros valores de etiqueta">
+          <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${LABEL_FALLBACK_COLOR}; flex-shrink: 0;"></span>
+          <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Otros (${layer.uniqueLabels.length - 6})</span>
+        </div>
+      `;
+    }
+    legendHtml += `</div></div>`;
+  }
+
+  wrap.innerHTML = `
+    <div class="layer-head">
+      <label class="switch" title="${layer.visible ? 'Apagar capa' : 'Encender capa'}">
+        <input type="checkbox" id="visChk${slot}" ${layer.visible?'checked':''} onchange="toggleLayerVisibility(${slot})">
+        <span class="slider-toggle"></span>
+      </label>
+      <span class="layer-dot" style="background:${layer.color}"></span>
+      <input type="text" class="layer-name-input" value="${escapeAttr(layer.name)}" onchange="renameLayer(${slot}, this.value)">
+      <span class="layer-count">${layer.points.length.toLocaleString('es-CL')} pts</span>
+      ${reorderButtons}
+      <button class="layer-remove" onclick="removeLayer(${slot})" title="Quitar capa">✕</button>
+    </div>
+    <div class="layer-body">
+      <div class="row2">
+        <div class="field"><label>Ícono</label>
+          <select id="iconSel${slot}" onchange="changeLayerStyle(${slot})">
+            ${ICON_OPTIONS.map(o => `<option value="${o.value}" ${o.value===layer.icon?'selected':''}>${o.label}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>Color base</label>
+          <select id="colorSel${slot}" onchange="changeLayerStyle(${slot})">
+            ${COLOR_OPTIONS.map(o => `<option value="${o.value}" ${o.value===layer.color?'selected':''}>${o.label}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      ${legendHtml}
+      <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
+        ${invalidBadge}
+        ${outlierBadge}
+      </div>
+      <div class="row2" style="margin-top:8px;">
+        ${layer.invalidRows.length ? `<button class="btn btn-ghost sm" style="padding: 5px;" onclick="exportLayerInvalid(${slot})">F. Inválidas</button>` : '<div></div>'}
+        ${layer.outliers && layer.outliers.length ? `<button class="btn btn-danger-ghost sm" style="padding: 5px;" onclick="openOutliersModal(${slot})">Corregir Lejanos</button>` : ''}
+      </div>
+    </div>`;
+  return wrap;
+}
+
+function attachDropZone(slot) {
+  const dz = document.getElementById(`dz${slot}`);
+  if (!dz) return;
+  ['dragenter','dragover'].forEach(evt => dz.addEventListener(evt, e => { e.preventDefault(); dz.classList.add('dragover'); }));
+  ['dragleave','drop'].forEach(evt => dz.addEventListener(evt, e => { e.preventDefault(); dz.classList.remove('dragover'); }));
+  dz.addEventListener('drop', e => {
+    const file = e.dataTransfer.files[0];
+    if (file) processLayerFile(slot, file);
+  });
+}
+
+function refreshLayerCard(slot) {
+  const old = document.getElementById(`layerCard${slot}`);
+  const fresh = buildLayerCardEl(slot);
+  old.replaceWith(fresh);
+}
+
+function moveLayerInOrder(slot, direction) {
+  const idx = drawOrder.indexOf(slot);
+  if (idx === -1) return;
+  const targetIdx = idx + direction;
+  if (targetIdx < 0 || targetIdx >= MAX_LAYERS) return;
+
+  const temp = drawOrder[idx];
+  drawOrder[idx] = drawOrder[targetIdx];
+  drawOrder[targetIdx] = temp;
+
+  updateLayerZIndices();
+  renderAllLayerCards();
+  showToast('Orden de visualización de capas actualizado.');
+}
+
+// ===================== CARGA DE ARCHIVO POR CAPA =====================
+function handleLayerFileInput(slot, event) {
+  const file = event.target.files[0];
+  if (file) processLayerFile(slot, file);
+}
+
+function processLayerFile(slot, file) {
+  if (!/\.(xlsx|xls|csv)$/i.test(file.name)) { showToast('Formato no soportado. Usa .xlsx, .xls o .csv'); return; }
+
+  showLoading(true, `Leyendo archivo para Capa ${slot + 1}…`, 10);
+  const reader = new FileReader();
+  reader.onerror = () => { showLoading(false); showToast('No se pudo leer el archivo.'); };
+  reader.onload = (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+      if (!rawRows.length) throw new Error('El archivo no contiene filas de datos.');
+
+      const headers = Object.keys(rawRows[0]);
+
+      layers[slot] = {
+        state: 'pending',
+        name: file.name.replace(/\.[^.]+$/, ''),
+        color: DEFAULT_COLORS[slot],
+        icon: 'circle',
+        fileName: file.name,
+        rawRows, headers,
+        mapping: { lat:null, lng:null, id:null, label:null, extra:null },
+        points: [], invalidRows: [], outliers: [],
+        leafletGroup: null, visible: true, renderGen: 0,
+        _guessLat: guessColumn(headers, CANDIDATES.lat),
+        _guessLng: guessColumn(headers, CANDIDATES.lng),
+        _guessId: guessColumn(headers, CANDIDATES.id),
+        _guessLabel: guessColumn(headers, CANDIDATES.label)
+      };
+
+      showLoading(false);
+      refreshLayerCard(slot);
+    } catch (err) {
+      showLoading(false);
+      showToast('Error al procesar el archivo: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function guessColumn(headers, candList) {
+  for (const cand of candList) {
+    const match = headers.find(h => normalize(h) === cand);
+    if (match) return match;
+  }
+  return null;
+}
+function normalize(str) { return String(str).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim(); }
+
+function validateMappingBtn(slot) {
+  const lat = document.getElementById(`mapLat${slot}`).value;
+  const lng = document.getElementById(`mapLng${slot}`).value;
+  document.getElementById(`btnMap${slot}`).disabled = !(lat && lng);
+}
+
+function confirmLayerMapping(slot) {
+  const layer = layers[slot];
+  const lat = document.getElementById(`mapLat${slot}`).value;
+  const lng = document.getElementById(`mapLng${slot}`).value;
+  const id = document.getElementById(`mapId${slot}`).value || null;
+  const labelCol = document.getElementById(`mapLabel${slot}`).value || null;
+  const extra = document.getElementById(`mapExtra${slot}`).value || null;
+
+  if (lat === lng) { showToast('Latitud y Longitud no pueden ser la misma columna.'); return; }
+
+  layer.mapping = { lat, lng, id, label: labelCol, extra };
+
+  // Escanear valores únicos de etiquetas
+  const labelsSet = new Set();
+  if (labelCol) {
+    layer.rawRows.forEach(row => {
+      const val = String(row[labelCol] ?? '').trim();
+      if (val) labelsSet.add(val);
+    });
+  }
+
+  const uniqueLabels = Array.from(labelsSet);
+  layer.uniqueLabels = uniqueLabels;
+  layer.labelMap = {};
+
+  // Asignar colores altamente contrastantes a las etiquetas (máx 6)
+  const displayLabels = uniqueLabels.slice(0, 6);
+  displayLabels.forEach((lbl, i) => {
+    layer.labelMap[lbl] = LABEL_COLORS[i];
+  });
+
+  const points = [], invalidRows = [];
+  layer.rawRows.forEach((row, idx) => {
+    const la = parseFloat(row[lat]), ln = parseFloat(row[lng]);
+    const valid = Number.isFinite(la) && Number.isFinite(ln) && Math.abs(la) <= 90 && Math.abs(ln) <= 180 && !(la === 0 && ln === 0);
+    if (valid) {
+      points.push({
+        id: id ? (row[id] ?? 'S/N') : `Fila ${idx + 2}`,
+        lat: la,
+        lng: ln,
+        label: labelCol ? String(row[labelCol] ?? '').trim() : null,
+        extra: extra ? row[extra] : null
+      });
+    } else {
+      invalidRows.push({ fila: idx + 2, ...row });
+    }
+  });
+
+  layer.points = points;
+  layer.invalidRows = invalidRows;
+  
+  // Detección automática de outliers (puntos lejanos)
+  detectOutliers(slot);
+  
+  layer.state = 'ready';
+
+  refreshLayerCard(slot);
+  renderLayerPoints(slot);
+  updateGlobalStats();
+
+  document.getElementById('toolsSection').style.display = 'block';
+  document.getElementById('previewSection').style.display = 'block';
+  document.getElementById('exportSection').style.display = 'block';
+  document.getElementById('statsSection').style.display = 'block';
+
+  if (layer.outliers.length) {
+    showToast(`Se detectaron ${layer.outliers.length} puntos lejanos o fuera de límites.`);
+  } else if (invalidRows.length) {
+    showToast(`Capa ${slot+1}: ${invalidRows.length} fila(s) con coordenadas inválidas descartadas.`);
+  }
+}
+
+// ===================== OUTLIERS / PUNTOS LEJANOS =====================
+function detectOutliers(slot) {
+  const layer = layers[slot];
+  if (!layer || !layer.points.length) {
+    if (layer) layer.outliers = [];
+    return;
+  }
+
+  const lats = layer.points.map(p => p.lat);
+  const lngs = layer.points.map(p => p.lng);
+  const medianLat = getMedian(lats);
+  const medianLng = getMedian(lngs);
+
+  layer.medianCenter = { lat: medianLat, lng: medianLng };
+
+  const outliers = [];
+  layer.points.forEach((p, idx) => {
+    const dist = haversineDistance(p.lat, p.lng, medianLat, medianLng);
+    const outsideChile = p.lat < -56 || p.lat > -17 || p.lng < -76 || p.lng > -66;
+
+    if (outsideChile || dist > 200) {
+      outliers.push({
+        ...p,
+        originalIndex: idx,
+        dist: dist,
+        outsideChile: outsideChile
+      });
+    }
+  });
+
+  layer.outliers = outliers;
+}
+
+function getMedian(arr) {
+  const sorted = [...arr].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function openOutliersModal(slot) {
+  activeOutlierSlot = slot;
+  const layer = layers[slot];
+  if (!layer) return;
+
+  document.getElementById('modalTitle').innerHTML = `Corregir Puntos Lejanos — Capa: <b>${escapeHtml(layer.name)}</b>`;
+  renderOutliersTable();
+  document.getElementById('outliersModal').style.display = 'flex';
+}
+
+function closeOutliersModal() {
+  document.getElementById('outliersModal').style.display = 'none';
+  activeOutlierSlot = null;
+}
+
+function renderOutliersTable() {
+  const body = document.getElementById('outliersTableBody');
+  const layer = layers[activeOutlierSlot];
+  if (!layer || !layer.outliers || !layer.outliers.length) {
+    body.innerHTML = '<tr><td colspan="5" class="empty-hint" style="text-align:center;">No quedan puntos lejanos en esta capa.</td></tr>';
+    return;
+  }
+
+  body.innerHTML = layer.outliers.map((o, idx) => {
+    const distText = o.outsideChile
+      ? 'Fuera de Chile'
+      : `${Math.round(o.dist)} km del centro`;
+    return `
+      <tr>
+        <td><b>${escapeHtml(String(o.id))}</b></td>
+        <td style="color:var(--red); font-weight:600; font-size:11px;">⚠️ ${distText}</td>
+        <td>
+          <input type="number" step="any" id="outlierLat_${idx}" value="${o.lat}">
+        </td>
+        <td>
+          <input type="number" step="any" id="outlierLng_${idx}" value="${o.lng}">
+        </td>
+        <td>
+          <div class="outliers-action-btns">
+            <button class="btn btn-navy sm" onclick="focusOutlierPoint(${idx})">🔍 Ver</button>
+            <button class="btn btn-primary sm" onclick="saveOutlierCorrection(${idx})">💾 Guardar</button>
+            <button class="btn btn-danger-ghost sm" onclick="excludeOutlierPoint(${idx})">✕ Excluir</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function focusOutlierPoint(outlierIdx) {
+  const layer = layers[activeOutlierSlot];
+  if (!layer) return;
+  const o = layer.outliers[outlierIdx];
+  if (!o) return;
+
+  closeOutliersModal();
+  map.setView([o.lat, o.lng], 14);
+
+  layer.leafletGroup.eachLayer(marker => {
+    const latlng = marker.getLatLng();
+    if (Math.abs(latlng.lat - o.lat) < 1e-7 && Math.abs(latlng.lng - o.lng) < 1e-7) {
+      marker.openPopup();
+    }
+  });
+}
+
+function saveOutlierCorrection(outlierIdx) {
+  const layer = layers[activeOutlierSlot];
+  if (!layer) return;
+  const o = layer.outliers[outlierIdx];
+  if (!o) return;
+
+  const newLat = parseFloat(document.getElementById(`outlierLat_${outlierIdx}`).value);
+  const newLng = parseFloat(document.getElementById(`outlierLng_${outlierIdx}`).value);
+
+  if (isNaN(newLat) || isNaN(newLng) || Math.abs(newLat) > 90 || Math.abs(newLng) > 180) {
+    showToast('Error: Coordenadas fuera de rangos válidos.');
+    return;
+  }
+
+  const p = layer.points[o.originalIndex];
+  p.lat = newLat;
+  p.lng = newLng;
+
+  detectOutliers(activeOutlierSlot);
+  renderLayerPoints(activeOutlierSlot);
+  recomputeSelection();
+  updateGlobalStats();
+  renderOutliersTable();
+  refreshLayerCard(activeOutlierSlot);
+
+  showToast('Punto corregido en caliente.');
+
+  if (!layer.outliers.length) {
+    closeOutliersModal();
+  }
+}
+
+function excludeOutlierPoint(outlierIdx) {
+  const layer = layers[activeOutlierSlot];
+  if (!layer) return;
+  const o = layer.outliers[outlierIdx];
+  if (!o) return;
+
+  if (!confirm(`¿Desea excluir definitivamente el punto "${o.id}"?`)) return;
+
+  layer.points.splice(o.originalIndex, 1);
+  detectOutliers(activeOutlierSlot);
+  renderLayerPoints(activeOutlierSlot);
+  recomputeSelection();
+  updateGlobalStats();
+  renderOutliersTable();
+  refreshLayerCard(activeOutlierSlot);
+
+  showToast('Punto excluido.');
+
+  if (!layer.outliers.length) {
+    closeOutliersModal();
+  }
+}
+
+// ===================== RENDER DE PUNTOS POR CAPA (Canvas único por capa) =====================
+function renderLayerPoints(slot) {
+  const layer = layers[slot];
+  if (!layer) return;
+
+  layer.renderGen++;
+  const myGen = layer.renderGen;
+
+  if (layer.leafletGroup) { map.removeLayer(layer.leafletGroup); }
+  layer.leafletGroup = L.layerGroup();
+  if (layer.visible) layer.leafletGroup.addTo(map);
+
+  const bounds = L.latLngBounds();
+  let i = 0;
+
+  showLoading(true, `Dibujando puntos en Canvas — ${escapeHtml(layer.name)}…`, 0);
+
+  function step() {
+    if (myGen !== layer.renderGen) return;
+    const end = Math.min(i + CHUNK_SIZE, layer.points.length);
+    for (; i < end; i++) {
+      const p = layer.points[i];
+      
+      // Determinar color de relleno del punto
+      let fillColor = layer.color;
+      if (layer.mapping.label && p.label) {
+        fillColor = layer.labelMap[p.label] || LABEL_FALLBACK_COLOR;
+      }
+
+      const marker = L.shapeMarker([p.lat, p.lng], {
+        renderer: renderers[slot],
+        radius: 5,
+        color: '#fff',
+        weight: 1.2,
+        fillColor: fillColor,
+        fillOpacity: 0.85,
+        shape: layer.icon
+      });
+      
+      // Popup informativo del punto
+      let popupContent = `<b>${escapeHtml(String(p.id))}</b><br>Capa: ${escapeHtml(layer.name)}`;
+      if (layer.mapping.label && p.label) {
+        popupContent += `<br>Etiqueta: <span style="font-weight:600; color:${fillColor}">${escapeHtml(p.label)}</span>`;
+      }
+      popupContent += `<br>Lat: ${p.lat.toFixed(6)}<br>Lng: ${p.lng.toFixed(6)}`;
+      if (p.extra) {
+        popupContent += `<br>Extra: ${escapeHtml(String(p.extra))}`;
+      }
+      marker.bindPopup(popupContent);
+      marker.addTo(layer.leafletGroup);
+      bounds.extend([p.lat, p.lng]);
+    }
+    updateProgress(Math.round((end / layer.points.length) * 100));
+
+    if (end < layer.points.length) {
+      requestAnimationFrame(step);
+    } else {
+      showLoading(false);
+      if (layer.points.length) {
+        const combined = allVisibleBounds();
+        if (combined) map.fitBounds(combined, { maxZoom: 16 });
+      }
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+function allVisibleBounds() {
+  let bounds = null;
+  layers.forEach(l => {
+    if (l && l.state === 'ready' && l.visible && l.points.length) {
+      l.points.forEach(p => {
+        if (!bounds) bounds = L.latLngBounds([p.lat, p.lng], [p.lat, p.lng]);
+        else bounds.extend([p.lat, p.lng]);
+      });
+    }
+  });
+  return bounds;
+}
+
+function changeLayerStyle(slot) {
+  const layer = layers[slot];
+  layer.icon = document.getElementById(`iconSel${slot}`).value;
+  layer.color = document.getElementById(`colorSel${slot}`).value;
+  
+  renderLayerPoints(slot);
+  
+  const dot = document.querySelector(`#layerCard${slot} .layer-dot`);
+  if (dot) dot.style.background = layer.color;
+  
+  recomputeSelection();
+}
+
+function toggleLayerVisibility(slot) {
+  const layer = layers[slot];
+  layer.visible = document.getElementById(`visChk${slot}`).checked;
+
+  const card = document.getElementById(`layerCard${slot}`);
+  if (card) card.classList.toggle('off', !layer.visible);
+  
+  const switchLabel = card ? card.querySelector('.switch') : null;
+  if (switchLabel) switchLabel.title = layer.visible ? 'Apagar capa' : 'Encender capa';
+
+  if (layer.leafletGroup) {
+    if (layer.visible) layer.leafletGroup.addTo(map);
+    else map.removeLayer(layer.leafletGroup);
+  }
+  recomputeSelection();
+  updateGlobalStats();
+}
+
+function renameLayer(slot, value) {
+  layers[slot].name = value.trim() || `Capa ${slot + 1}`;
+}
+
+function removeLayer(slot) {
+  const layer = layers[slot];
+  if (layer && layer.leafletGroup) map.removeLayer(layer.leafletGroup);
+  layers[slot] = null;
+  
+  const idx = drawOrder.indexOf(slot);
+  drawOrder.splice(idx, 1);
+  drawOrder.push(slot);
+
+  updateLayerZIndices();
+  renderAllLayerCards();
+  recomputeSelection();
+  updateGlobalStats();
+
+  const anyReady = layers.some(l => l && l.state === 'ready');
+  if (!anyReady) {
+    document.getElementById('statsSection').style.display = 'none';
+    document.getElementById('toolsSection').style.display = 'none';
+    document.getElementById('previewSection').style.display = 'none';
+    document.getElementById('exportSection').style.display = 'none';
+  }
+}
+
+function clearAllLayers() {
+  for (let slot = 0; slot < MAX_LAYERS; slot++) removeLayer(slot);
+  drawnItems.clearLayers();
+  showToast('Todas las capas fueron reiniciadas.');
+}
+
+// ===================== SELECCIÓN ESPACIAL =====================
+function recomputeSelection() {
+  const shapes = drawnItems.getLayers();
+  if (!shapes.length) { selectedPoints = []; updateSelectionUI(); return; }
+
+  const shapeDefs = shapes.map(l => ({ bounds: l.getBounds(), latlngs: l.getLatLngs()[0] }));
+  selectedPoints = [];
+
+  layers.forEach((layer, slot) => {
+    if (!layer || layer.state !== 'ready' || !layer.visible) return;
+    layer.points.forEach(p => {
+      const ll = [p.lat, p.lng];
+      for (const shape of shapeDefs) {
+        if (shape.bounds.contains(ll) && isPointInPoly({ lat: p.lat, lng: p.lng }, shape.latlngs)) {
+          let markerColor = layer.color;
+          if (layer.mapping.label && p.label) {
+            markerColor = layer.labelMap[p.label] || LABEL_FALLBACK_COLOR;
+          }
+          selectedPoints.push({ ...p, layerSlot: slot, layerName: layer.name, color: markerColor });
+          break;
+        }
+      }
+    });
+  });
+
+  updateSelectionUI();
+}
+
+function isPointInPoly(point, vs) {
+  let x = point.lat, y = point.lng, inside = false;
+  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+    const xi = vs[i].lat, yi = vs[i].lng, xj = vs[j].lat, yj = vs[j].lng;
+    const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function clearSelection() { drawnItems.clearLayers(); selectedPoints = []; updateSelectionUI(); }
+
+// ===================== STATS / PREVIEW =====================
+function updateGlobalStats() {
+  const readyLayers = layers.filter(l => l && l.state === 'ready');
+  const total = readyLayers.reduce((sum, l) => sum + l.points.length, 0);
+  document.getElementById('kpiTotal').textContent = total.toLocaleString('es-CL');
+  document.getElementById('kpiLayers').textContent = readyLayers.length;
+  document.getElementById('datasetBadge').innerHTML = readyLayers.length
+    ? `<span class="dot"></span>${readyLayers.length} capa(s) · ${total.toLocaleString('es-CL')} puntos`
+    : '<span class="dot"></span>Sin capas cargadas';
+}
+
+function updateSelectionUI() {
+  document.getElementById('kpiSelected').textContent = selectedPoints.length.toLocaleString('es-CL');
+  const has = selectedPoints.length > 0;
+  document.getElementById('btnExportCsv').disabled = !has;
+  document.getElementById('btnExportGeo').disabled = !has;
+  renderPreview();
+}
+
+function renderPreview() {
+  const list = document.getElementById('previewList');
+  const term = normalize(document.getElementById('searchInput').value || '');
+  const filtered = term ? selectedPoints.filter(p => normalize(p.id).includes(term)) : selectedPoints;
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-hint">${selectedPoints.length ? 'Sin coincidencias.' : 'Dibuja un polígono o rectángulo sobre el mapa para seleccionar puntos.'}</div>`;
+    return;
+  }
+  const top = filtered.slice(0, 200);
+  list.innerHTML = top.map(p => `<div class="row"><span class="rdot" style="background:${p.color}"></span><span class="rid">${escapeHtml(String(p.id))} <span style="color:var(--slate-soft);font-size:10px;">· ${escapeHtml(p.layerName)}</span></span><span class="coord">${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}</span></div>`).join('')
+    + (filtered.length > 200 ? `<div class="empty-hint">… y ${filtered.length - 200} más</div>` : '');
+}
+
+// ===================== EXPORTACIONES =====================
+function csvEscape(val) { const s = val === null || val === undefined ? '' : String(val); return `"${s.replace(/"/g, '""')}"`; }
+
+function exportSelection(format) {
+  if (!selectedPoints.length) { showToast('No hay puntos seleccionados.'); return; }
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+
+  if (format === 'csv') {
+    const hasLabel = selectedPoints.some(p => p.label);
+    const hasExtra = selectedPoints.some(p => p.extra);
+    let csv = '\ufeff' + ['ID', 'Capa', 'Latitud', 'Longitud'].concat(hasLabel ? ['Etiqueta'] : []).concat(hasExtra ? ['Extra'] : []).join(',') + '\n';
+    selectedPoints.forEach(p => {
+      csv += [csvEscape(p.id), csvEscape(p.layerName), p.lat, p.lng]
+        .concat(hasLabel ? [csvEscape(p.label)] : [])
+        .concat(hasExtra ? [csvEscape(p.extra)] : []).join(',') + '\n';
+    });
+    downloadBlob(csv, `f-gis_seleccion_${stamp}.csv`, 'text/csv;charset=utf-8;');
+  } else {
+    const geojson = { type: 'FeatureCollection', features: selectedPoints.map(p => ({
+      type: 'Feature', geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+      properties: { id: p.id, capa: p.layerName, etiqueta: p.label ?? undefined, extra: p.extra ?? undefined }
+    })) };
+    downloadBlob(JSON.stringify(geojson, null, 2), `f-gis_seleccion_${stamp}.geojson`, 'application/geo+json');
+  }
+  showToast(`Exportado: ${selectedPoints.length.toLocaleString('es-CL')} punto(s)`);
+}
+
+function exportAllLayers() {
+  const all = [];
+  layers.forEach((layer, slot) => {
+    if (layer && layer.state === 'ready') {
+      layer.points.forEach(p => all.push({ ...p, layerName: layer.name }));
+    }
+  });
+  if (!all.length) { showToast('No hay puntos cargados.'); return; }
+
+  const hasLabel = all.some(p => p.label);
+  const hasExtra = all.some(p => p.extra);
+  let csv = '\ufeff' + ['ID', 'Capa', 'Latitud', 'Longitud'].concat(hasLabel ? ['Etiqueta'] : []).concat(hasExtra ? ['Extra'] : []).join(',') + '\n';
+  all.forEach(p => {
+    csv += [csvEscape(p.id), csvEscape(p.layerName), p.lat, p.lng]
+      .concat(hasLabel ? [csvEscape(p.label)] : [])
+      .concat(hasExtra ? [csvEscape(p.extra)] : []).join(',') + '\n';
+  });
+  downloadBlob(csv, `f-gis_todas_las_capas_${Date.now()}.csv`, 'text/csv;charset=utf-8;');
+  showToast(`Exportado: ${all.length.toLocaleString('es-CL')} punto(s) de todas las capas`);
+}
+
+function exportLayerInvalid(slot) {
+  const layer = layers[slot];
+  if (!layer || !layer.invalidRows.length) return;
+  const cols = Object.keys(layer.invalidRows[0]);
+  let csv = '\ufeff' + cols.map(csvEscape).join(',') + '\n';
+  layer.invalidRows.forEach(r => { csv += cols.map(c => csvEscape(r[c])).join(',') + '\n'; });
+  downloadBlob(csv, `f-gis_${layer.name}_filas_invalidas.csv`, 'text/csv;charset=utf-8;');
+}
+
+function downloadBlob(content, filename, mime) {
+  const blob = new Blob([content], { type: mime });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 4000);
+}
+
+// ===================== HELPERS UI =====================
+function escapeHtml(str) { return str.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeAttr(str) { return escapeHtml(str); }
+
+function showLoading(show, msg, pct) {
+  document.getElementById('loading').style.display = show ? 'flex' : 'none';
+  if (msg) document.getElementById('loadingMsg').textContent = msg;
+  if (pct !== undefined) updateProgress(pct);
+}
+function updateProgress(pct) { document.getElementById('progressFill').style.width = pct + '%'; }
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.style.display = 'none'; }, 3800);
+}
+
+document.addEventListener('DOMContentLoaded', initMap);
+</script>
+
+</body>
+</html>

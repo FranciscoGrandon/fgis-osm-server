@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Servidor Cartográfico Local OSM - Zona Centro-Sur de Chile</title>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --surface: #ffffff;
+      --background: #f8fafc;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --success: #16a34a;
+      --warning: #f59e0b;
+      --radius: 12px;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--background);
+      color: var(--text-main);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: #0f172a;
+      color: #ffffff;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+      z-index: 1000;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      background: var(--primary);
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .brand-title {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-subtitle {
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 400;
+    }
+
+    .header-badges {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .badge-status {
+      background: rgba(22, 163, 74, 0.2);
+      color: #4ade80;
+      border: 1px solid rgba(74, 222, 128, 0.3);
+    }
+
+    .badge-status.error {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      border-color: rgba(248, 113, 113, 0.3);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4ade80;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.2); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    #map-container {
+      flex: 1;
+      position: relative;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      background: #cbd5e1;
+    }
+
+    /* Floating Control Panel */
+    .floating-panel {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      padding: 18px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      width: 320px;
+      border: 1px solid var(--border);
+    }
+
+    .panel-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--text-main);
+    }
+
+    .region-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .btn-nav {
+      background: var(--background);
+      border: 1px solid var(--border);
+      padding: 9px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-main);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-nav span.tag {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .btn-nav:hover {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+      color: var(--primary);
+    }
+
+    .stats-card {
+      background: #f1f5f9;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .stat-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .stat-label {
+      color: var(--text-muted);
+    }
+    .stat-value {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    /* Endpoint Bar at Bottom */
+    .endpoint-bar {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(8px);
+      color: #ffffff;
+      padding: 8px 18px;
+      border-radius: 9999px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    }
+
+    .endpoint-code {
+      font-family: monospace;
+      color: #38bdf8;
+      background: rgba(0,0,0,0.3);
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-icon">🗺️</div>
+      <div>
+        <div class="brand-title">OpenStreetMap Local Server</div>
+        <div class="brand-subtitle">Macro-Zona Centro-Sur (O'Higgins, Maule, Ñuble, Biobío)</div>
+      </div>
+    </div>
+    <div class="header-badges">
+      <div id="server-badge" class="badge badge-status">
+        <span class="status-dot"></span>
+        <span id="server-text">Conectado (Localhost:8550)</span>
+      </div>
+    </div>
+  </header>
+
+  <div id="map-container">
+    <!-- Floating Navigation & Stats -->
+    <div class="floating-panel">
+      <div class="panel-title">
+        <span>Sectores Principales</span>
+        <span style="font-size: 11px; font-weight: normal; color: var(--text-muted);">Zoom 13</span>
+      </div>
+      
+      <div class="region-buttons">
+        <button class="btn-nav" onclick="goTo(-34.1708, -70.7444, 13, 'Rancagua (Región de O\'Higgins)')">
+          <strong>Rancagua</strong>
+          <span class="tag">O'Higgins</span>
+        </button>
+        <button class="btn-nav" onclick="goTo(-35.4264, -71.6554, 13, 'Talca (Región del Maule)')">
+          <strong>Talca</strong>
+          <span class="tag">Maule</span>
+        </button>
+        <button class="btn-nav" onclick="goTo(-36.6066, -72.1034, 13, 'Chillán (Región de Ñuble)')">
+          <strong>Chillán</strong>
+          <span class="tag">Ñuble</span>
+        </button>
+        <button class="btn-nav" onclick="goTo(-36.8270, -73.0503, 13, 'Concepción (Región del Biobío)')">
+          <strong>Concepción</strong>
+          <span class="tag">Biobío</span>
+        </button>
+      </div>
+
+      <div class="panel-title" style="margin-top: 14px;">
+        <span>Métricas de Caché Local</span>
+      </div>
+      
+      <div class="stats-card">
+        <div class="stat-row">
+          <span class="stat-label">Teselas almacenadas:</span>
+          <span id="stat-tiles" class="stat-value">Cargando...</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Espacio en base de datos:</span>
+          <span id="stat-size" class="stat-value">-- MB</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Tiempo activo:</span>
+          <span id="stat-uptime" class="stat-value">-- s</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Endpoint Indicator -->
+    <div class="endpoint-bar">
+      <span>Endpoint Local Activo:</span>
+      <span class="endpoint-code">http://localhost:8550/tile/{z}/{x}/{y}.png</span>
+    </div>
+
+    <!-- The Map Element -->
+    <div id="map"></div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <script>
+    // 1. Inicialización del Mapa centrado en la Zona Centro-Sur de Chile
+    const map = L.map('map', {
+      zoomControl: true,
+      maxZoom: 18,
+      minZoom: 5
+    }).setView([-36.0, -72.0], 8);
+
+    // 2. Capa de Teselas apuntando directamente al endpoint del servidor local
+    const localTileLayer = L.tileLayer('/tile/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> colaboradores | Servidor Local Python DevOps',
+      maxZoom: 18,
+      tileSize: 256,
+      zoomOffset: 0
+    }).addTo(map);
+
+    // 3. Marcadores de las Capitales Regionales
+    const markers = [
+      { coords: [-34.1708, -70.7444], title: "Rancagua", region: "Región de O'Higgins" },
+      { coords: [-35.4264, -71.6554], title: "Talca", region: "Región del Maule" },
+      { coords: [-36.6066, -72.1034], title: "Chillán", region: "Región de Ñuble" },
+      { coords: [-36.8270, -73.0503], title: "Concepción", region: "Región del Biobío" }
+    ];
+
+    markers.forEach(m => {
+      L.marker(m.coords)
+        .addTo(map)
+        .bindPopup(`<strong>${m.title}</strong><br><span style="color:#64748b">${m.region}</span>`);
+    });
+
+    // 4. Polígono / Envolvente aproximada de la Zona Centro-Sur
+    const boundsPolygon = [
+      [-33.8, -72.0], // O'Higgins Costa Norte
+      [-33.8, -69.8], // O'Higgins Cordillera
+      [-38.5, -71.0], // Biobío Cordillera Sur
+      [-38.5, -74.0], // Biobío Costa Sur
+      [-33.8, -72.0]
+    ];
+    L.polyline(boundsPolygon, {
+      color: '#2563eb',
+      weight: 2,
+      dashArray: '5, 8',
+      opacity: 0.6
+    }).addTo(map);
+
+    // 5. Función de Navegación Suave
+    function goTo(lat, lng, zoom, label) {
+      map.flyTo([lat, lng], zoom, { duration: 1.5 });
+    }
+
+    // 6. Monitorización de Estado y Métricas desde /api/status
+    async function updateStats() {
+      try {
+        const res = await fetch('/api/status');
+        if (!res.ok) throw new Error('Error HTTP ' + res.status);
+        const data = await res.json();
+        
+        document.getElementById('stat-tiles').innerText = Number(data.cached_tiles).toLocaleString() + ' teselas';
+        document.getElementById('stat-size').innerText = data.database_size_mb + ' MB';
+        
+        const minutes = Math.floor(data.uptime_seconds / 60);
+        const seconds = data.uptime_seconds % 60;
+        document.getElementById('stat-uptime').innerText = `${minutes}m ${seconds}s`;
+
+        const badge = document.getElementById('server-badge');
+        badge.className = 'badge badge-status';
+        document.getElementById('server-text').innerText = 'Conectado (Localhost:8550)';
+      } catch (err) {
+        const badge = document.getElementById('server-badge');
+        badge.className = 'badge badge-status error';
+        document.getElementById('server-text').innerText = 'Desconectado';
+      }
+    }
+
+    updateStats();
+    setInterval(updateStats, 3000);
+  </script>
+</body>
+</html>
