@@ -8,6 +8,10 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.
 ## [Unreleased]
 
 ### Añadido
+- Publicación del repositorio público oficial en GitHub: `https://github.com/FranciscoGrandon/fgis-osm-server`.
+- Integración completa del cliente web autónomo **F-GIS 4.0** (`fgis4/`) con capa resiliente (`OsmLocalResilientLayer`), conmutación automática de teselas (fallback), librerías locales (`lib/`) y herramientas geoanalíticas de terreno.
+- Archivo `.gitignore` integral para exclusión estricta de cachés de mapas (`cache/`, `tiles.db*`, `*.mbtiles`), entornos virtuales y artefactos de cobertura.
+- `README.md` principal unificado con arquitectura del stack completo, instrucciones de ejecución local y documentación de endpoints.
 - Archivo de configuración centralizado `pyproject.toml` con estándares de calidad para `ruff`, `mypy` (modo strict), `pytest`, `pytest-cov` (umbral >90%) y `bandit`.
 - Suite integral de pruebas unitarias en `tests/test_server.py` y `tests/test_seed_region.py` con cobertura de casos felices, límites geográficos y de zoom, persistencia SQLite, expiración TTL y excepciones de red.
 - Funciones modulares y testeables en `server.py` (`validate_tile_coords`, `get_tile_from_cache`, `get_tile_size_from_cache`, `save_tile_to_cache`, `fetch_upstream_tile`, `get_metrics`).
